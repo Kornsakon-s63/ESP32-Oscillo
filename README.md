@@ -86,3 +86,13 @@ ESP32 has two SARs (Successive Approximation Registers) built-in among which onl
 3. Edit at line have a ward "access_token" and use token from LINE API 
 
 ![Screenshot](linenotify.png)
+
+# Block Diagram
+
+![Screenshot](BlockDiagram.png)
+
+# Schematic
+
+![Screenshot](schema.png)
+![Screenshot](screen.png)
+
