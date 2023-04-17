@@ -92,34 +92,9 @@ const int BUTTON_PIN = 0;
 bool buttonState = false;
 bool lastButtonState = false;
 
-//Keypad
-#include <Keypad.h>
-bool inputtingSsid = true;
-const byte ROWS = 4; // Four rows
-const byte COLS = 4; // Four columns
-char keys[ROWS][COLS] = {
-    {'1', '2', '3', 'A'},
-    {'4', '5', '6', 'B'},
-    {'7', '8', '9', 'C'},
-    {'*', '0', '#', 'D'}
-  };
-uint8_t colPins[COLS] = { 12, 13, 14, 15 }; // Pins connected to C1, C2, C3, C4
-uint8_t rowPins[ROWS] = { 17, 25, 26, 27 }; // Pins connected to R1, R2, R3, R4
-Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
-
-void IRAM_ATTR buttonInterrupt() {
-  char key = keypad.getKey();
-    while(!buttonState){
-       if (key != '#') {
-        input += key;
-        Serial.print(key);
-      } else {
-        interval = input.toFloat();
-        buttonState = true;
-      }
-    }
-     
-}
+//I2C LCD 16*02
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 
 void setup () {  
@@ -146,9 +121,10 @@ void setup () {
     Serial.println("Error: Failed to initialize AHT10 sensor");
   }
 
-  //Keypad
-
-
+  //I2C LCD
+  lcd.init();
+  //lcd.noBacklight();   // ปิด backlight
+  lcd.backlight();       // เปิด backlight 
 
   
   //Start TFT Touch Screen
@@ -243,21 +219,23 @@ ledcWrite (0, 307); // 1/3 duty cycle
               int state = 1;
               while(state){
                 if (WiFi.status() != WL_CONNECTED){
+                  lcd.setCursor(0, 0);
+                  lcd.print("Waiting WiFi.");
                   Serial.print(".");
                 } else {
                   state = 0;
                   sendLineNotify("IP WEB SOCKET: " + String((char *) WiFi.localIP ().toString ().c_str ()));
+                  lcd.setCursor(0, 0);
+                  lcd.print(String((char *) WiFi.localIP ().toString ().c_str ()));
                 }
               }
-              pinMode(BUTTON_PIN, INPUT_PULLUP);
               
                        
 }
 
 
 void loop () {
-
-
+  lcd.setCursor(0, 1);
   buttonState = digitalRead(BUTTON_PIN);
   if (buttonState != lastButtonState) {
     if (buttonState == LOW) {
@@ -281,6 +259,21 @@ void loop () {
   Serial.print("Distance: ");
   Serial.print(distance);
   Serial.println(" cm");
+  lcd.print("D:");
+  //lcd.print(distance);
+  if (distance < 10){
+    lcd.setCursor(2, 1);
+    lcd.print(distance);
+    lcd.print("  ");
+  } else if (distance < 100){
+    lcd.setCursor(2, 1);
+    lcd.print(distance);
+    lcd.print(" ");
+  } else {
+    lcd.setCursor(2, 1);
+    lcd.print(distance);
+  }
+
 //  tft.setTextColor(0xFD00, TFT_BLACK);  // set text color to orange and black background
 //  tft.setCursor(3, 146);
 //  tft.print(distance);
@@ -288,7 +281,7 @@ void loop () {
 //  tft.print("cm");
 
   //Potentiometor Read
-  int potenValue = analogRead(33);
+  float potenValue = analogRead(33);
   Serial.print("Voltage: ");
   float voltage = map(potenValue, 0, 4096, 0, 5);
   Serial.println(voltage);
@@ -297,16 +290,23 @@ void loop () {
   int photoValue = analogRead(35);
   Serial.print("LDR: ");
   Serial.println(photoValue);
-
+  
   //AHT10 Read
   sensors_event_t humidity, temp;
   aht.getEvent(&humidity, &temp);// populate temp and humidity objects with fresh data
   Serial.print("Temperature: "); 
   Serial.print(temp.temperature); 
   Serial.println(" degrees C");
+  lcd.setCursor(5, 1);
+  lcd.print(" T:");
+  lcd.print(int(temp.temperature));
   Serial.print("Humidity: "); 
   Serial.print(humidity.relative_humidity); 
   Serial.println("% rH");
+  lcd.setCursor(10, 1);
+  lcd.print(" H:");
+  lcd.print(int(humidity.relative_humidity));
+  lcd.print("%");
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
